@@ -436,7 +436,7 @@ android {
     // KI compute passes); every other native lib stays the shipped prebuilt.
     externalNativeBuild {
         cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
+            path = file("src/main/cpp/ki_renderer/CMakeLists.txt")
             version = "3.22.1"
         }
     }
