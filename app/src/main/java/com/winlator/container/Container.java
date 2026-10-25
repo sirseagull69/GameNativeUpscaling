@@ -744,7 +744,7 @@ public class Container {
     }
 
     public Iterable<String[]> drivesIterator() {
-        return drivesIterator(drives);
+        return drivesIterator(com.winlator.core.AppPaths.fix(drives));
     }
 
     public static char getNextAvailableDriveLetter(String drives) throws Exception {

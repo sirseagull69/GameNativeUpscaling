@@ -65,6 +65,7 @@ class PluviaApp : SplitCompatApplication() {
 
     override fun onCreate() {
         super.onCreate()
+        com.winlator.core.AppPaths.init(this)
         instance = this
 
         preloadSystemLibraries()

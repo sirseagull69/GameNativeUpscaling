@@ -213,14 +213,15 @@ public class BionicProgramLauncherComponent extends GuestProgramLauncherComponen
         final int MAX_PLAYERS = 4;
 
         // Get the number of enabled players directly from ControllerManager.
+        String imagefsTmp = new File(environment.getContext().getFilesDir(), "imagefs/tmp").getAbsolutePath();
         for (int i = 0; i < MAX_PLAYERS; i++) {
             String memPath;
             if (i == 0) {
                 // Player 1 uses the original, non-numbered path that is known to work.
-                memPath = "/data/data/app.gamenative/files/imagefs/tmp/gamepad.mem";
+                memPath = imagefsTmp + "/gamepad.mem";
             } else {
                 // Players 2, 3, 4 use a 1-based index.
-                memPath = "/data/data/app.gamenative/files/imagefs/tmp/gamepad" + i + ".mem";
+                memPath = imagefsTmp + "/gamepad" + i + ".mem";
             }
 
             File memFile = new File(memPath);
@@ -384,6 +385,9 @@ public class BionicProgramLauncherComponent extends GuestProgramLauncherComponen
 
         envVars.put("LD_PRELOAD", ld_preload);
         envVars.put("EVSHIM_WINE", 1);
+        // Point evshim at this app's real files dir (WinHandler writes gamepad_shm there).
+        // Its built-in fallback is /data/data/app.gamenative/files, which breaks renamed builds.
+        envVars.put("EVSHIM_BASE_PATH", context.getFilesDir().getAbsolutePath());
         envVars.put("EVSHIM_SHM_NAME", "controller-shm0");
         envVars.put("SDL_LINUX_JOYSTICK_CLASSIC", "1");
 

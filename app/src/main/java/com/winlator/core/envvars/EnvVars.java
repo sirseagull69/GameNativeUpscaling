@@ -75,7 +75,7 @@ public class EnvVars implements Iterable<String> {
     public String[] toStringArray() {
         String[] stringArray = new String[data.size()];
         int index = 0;
-        for (String key : data.keySet()) stringArray[index++] = key+"="+data.get(key);
+        for (String key : data.keySet()) stringArray[index++] = key+"="+com.winlator.core.AppPaths.fix(data.get(key));
         return stringArray;
     }
 
