@@ -36,6 +36,7 @@ android {
         }
         create("ki") {
             initWith(getByName("debug"))
+            isDebuggable = false
         }
     }
 
