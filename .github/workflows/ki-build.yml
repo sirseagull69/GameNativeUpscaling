@@ -93,7 +93,7 @@ jobs:
           gh release create ki-latest GameNative-KI.apk \
             --prerelease --target "$GITHUB_SHA" \
             --title "GameNative KI (Testbuild $SHORT)" \
-            --notes "Automatischer Testbuild vom KI-Upscaler. Installiert sich neben dem normalen GameNative."
+            --notes "Automatischer Testbuild vom KI-Upscaler. Ersetzt GameNative (vorher deinstallieren, andere Signatur)."
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

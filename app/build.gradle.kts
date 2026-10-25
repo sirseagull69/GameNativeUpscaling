@@ -182,11 +182,12 @@ android {
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
         }
-        // Test build for the AI upscaler: installs next to the normal GameNative.
+        // Test build for the AI upscaler (replaces GameNative; different signature, so uninstall first).
         create("ki") {
             initWith(getByName("debug"))
             isDebuggable = false
-            applicationIdSuffix = ".ki"
+            // Same applicationId as upstream: GameNative hardcodes /data/data/app.gamenative in
+            // downloaded payloads (gamescope etc.), so a renamed package cannot run everything.
             versionNameSuffix = "-ki"
             signingConfig = signingConfigs.getByName("kiTest")
             matchingFallbacks += listOf("debug")
