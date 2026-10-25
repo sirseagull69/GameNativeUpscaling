@@ -35,8 +35,7 @@ android {
             initWith(getByName("release"))
         }
         create("ki") {
-            initWith(getByName("debug"))
-            isDebuggable = false
+            initWith(getByName("release"))
         }
     }
 

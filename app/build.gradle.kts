@@ -184,13 +184,14 @@ android {
         }
         // Test build for the AI upscaler (replaces GameNative; different signature, so uninstall first).
         create("ki") {
-            initWith(getByName("debug"))
+            // Based on release: optimised native code (CMake Release) and R8, like the official app.
+            initWith(getByName("release"))
             isDebuggable = false
             // Same applicationId as upstream: GameNative hardcodes /data/data/app.gamenative in
             // downloaded payloads (gamescope etc.), so a renamed package cannot run everything.
             versionNameSuffix = "-ki"
             signingConfig = signingConfigs.getByName("kiTest")
-            matchingFallbacks += listOf("debug")
+            matchingFallbacks += listOf("release")
         }
         create("release-signed") {
             isMinifyEnabled = true
