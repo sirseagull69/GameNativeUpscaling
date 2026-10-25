@@ -43,7 +43,7 @@ public class KiUpscaleEffect extends Effect implements RenderScaleEffect, PrePas
     private float detailStrength = 1.0f;
 
     public KiUpscaleEffect() {
-        this(new FsrcnnxX2Small());
+        this(new KiGameX2());
     }
 
     public KiUpscaleEffect(KiNetwork network) {

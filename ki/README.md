@@ -1,22 +1,36 @@
 # KI-Upscaler (Testbuild)
 
-Experimenteller Upscaler per neuronalem Netz für GameNative, gebaut für den AYN Thor.
+Upscaler per neuronalem Netz für GameNative, gebaut für den AYN Thor (Snapdragon 8 Gen 2).
+Läuft im **Vulkan-Renderer** (Compute-Shader) und im GL-Renderer.
 
-- Netz: FSRCNNX x2 8-0-4-1 von igv (LGPL-3.0), `ki/shaders/`
-- Konverter mpv-Shader → Java: `ki/tools/convert_mpv_shader.py`
-- Effekt: `app/src/main/java/com/winlator/renderer/effects/ki/`
-- Off-Device-Test (echte Shader auf Mesa/llvmpipe, PSNR gegen Original): `ki/tools/ShaderDump.java` + `ki/tools/run_ki.py`
+## Netz
 
-Messung (Set5+Set14, 2x, Y-PSNR):
+- Struktur FSRCNNX 8-0-4-1 (igv, LGPL-3.0), 2x, nur Helligkeit; Farbe kommt bilinear dazu.
+- **KI_game**: von FSRCNNX aus weitertrainiert auf synthetische Spielbilder
+  (`ki/train/`): gefilterte Texturen + harte Geometrie-/Schriftkanten wie beim Rendern
+  ohne Kantenglättung, Ziel = sauber geglättetes Bild in 2x.
+- Gewichte: `ki/shaders/KI_game_x2_8-0-4-1.glsl` (mpv-Format).
+- Aufwand: ca. 5,7 kFLOP pro Eingabepixel, bei 960x540 rund 3 GFLOP pro Bild.
 
-| Eingabe | Bilinear | Bicubic | KI |
-|---|---|---|---|
-| geglättet verkleinert (Lanczos) | 29.05 dB | 30.39 dB | **31.93 dB** |
-| hart verkleinert (wie Spiel ohne AA) | 26.79 dB | 26.57 dB | 25.04 dB |
+## Messung (Y-PSNR in dB, Mesa, gleiche Shader wie in der App)
 
-Folgerung: Bei Spielen mit Kantenglättung hilft das Netz deutlich. Bei Spielen ohne
-Kantenglättung KI-Detailstärke runterdrehen. Nächster Schritt: eigenes Netz auf
-spieltypische (treppige) Eingaben trainieren.
+| | Bilinear | Bicubic | SGSR v1 | FSRCNNX | **KI_game** |
+|---|---|---|---|---|---|
+| synthetische Spielbilder (12) | 35.60 | 36.41 | 34.23 | 34.61 | **37.26** |
+| Set5+14 hart verkleinert | 26.79 | 26.57 | 25.17 | 25.04 | 26.44 |
+| Set5+14 geglättet (Lanczos) | 29.06 | 30.39 | 28.82 | 31.93 | 31.48 |
 
-Nutzung: Container → Display renderer **GL**, Screen size z. B. 960×540,
-im Spiel Bildschirmeffekte → Hochskalierung → **KI (FSRCNNX)**.
+## Werkzeuge
+
+- `ki/train/model.py` – Netz in JAX, verlustfreier Import/Export im mpv-Format
+- `ki/train/data.py` – synthetische Spielbild-Paare
+- `ki/train/train.py` – Training (CPU)
+- `ki/tools/convert_mpv_shader.py` – mpv → Java (GL-Renderer)
+- `ki/tools/gen_vulkan.py` – mpv → Vulkan-Compute-Shader + SPIR-V (`app/src/main/cpp/winlator/ki/`)
+- `ki/tools/compare.py` – Vergleich Bilinear/Bicubic/SGSR/Netze auf Mesa
+- `ki/tools/test_vulkan_shaders.py` – Vulkan-Shader über GLES 3.1 auf Mesa ausführen
+
+## Nutzung
+
+Container: Anzeigeserver **X11**, Display-Renderer **Vulkan**, Bildschirmgröße z. B. 960×540.
+Im Spiel: Bildschirmeffekte → Hochskalierung → **KI-Upscaler**, KI-Detailstärke nach Geschmack.

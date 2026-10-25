@@ -1,4 +1,3 @@
-import com.winlator.renderer.effects.ki.FsrcnnxX2Small;
 import com.winlator.renderer.effects.ki.KiNetwork;
 import com.winlator.renderer.effects.ki.KiShaders;
 
@@ -11,6 +10,7 @@ import java.nio.file.Paths;
 /**
  * Writes the exact GLSL that KiUpscaleEffect compiles on the device, so it can be
  * validated with glslang and executed with a desktop GLES implementation (ki/tools/run_ki.py).
+ * Usage: ShaderDump <out dir> [NetworkClass]
  *
  * Output layout (in the given directory):
  *   vertex.vert            vertex shader incl. the applyXForm injection ShaderMaterial adds
@@ -22,7 +22,14 @@ public class ShaderDump {
     public static void main(String[] args) throws IOException {
         Path dir = Paths.get(args[0]);
         Files.createDirectories(dir);
-        KiNetwork net = new FsrcnnxX2Small();
+        // Network class name in com.winlator.renderer.effects.ki (default: the trained game net).
+        String cls = args.length > 1 ? args[1] : "KiGameX2";
+        KiNetwork net;
+        try {
+            net = (KiNetwork) Class.forName("com.winlator.renderer.effects.ki." + cls).getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw new IOException("unknown network " + cls, e);
+        }
 
         // Mirror ShaderMaterial.compileShaders' injection.
         String vs = KiShaders.VERTEX_SHADER;
