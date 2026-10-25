@@ -34,6 +34,8 @@ public class VulkanRenderer implements WindowManager.OnWindowModificationListene
     public static final int EFFECT_CRT = 3;
     public static final int EFFECT_HDR = 4;
     public static final int EFFECT_NATURAL = 5;
+    /** Neural-network upscaler (VulkanRendererKi.cpp); sharpness = detail strength / 1.5. */
+    public static final int EFFECT_KI = 6;
     public static final int SCALE_FIT = 0;
     public static final int SCALE_STRETCH = 1;
     public static final int SCALE_FILL = 2;
@@ -846,7 +848,7 @@ public class VulkanRenderer implements WindowManager.OnWindowModificationListene
 
     public void setEffect(int effectId, float sharpness, int scalingMode,
                           int effectMask, float brightness, float contrast, float gamma) {
-        pendingEffectId = Math.max(EFFECT_NONE, Math.min(EFFECT_NATURAL, effectId));
+        pendingEffectId = Math.max(EFFECT_NONE, Math.min(EFFECT_KI, effectId));
         pendingSharpness = Math.max(0.0f, Math.min(1.0f, sharpness));
         pendingEffectMask = Math.max(0, effectMask);
         pendingBrightness = Math.max(-1.0f, Math.min(1.0f, brightness));

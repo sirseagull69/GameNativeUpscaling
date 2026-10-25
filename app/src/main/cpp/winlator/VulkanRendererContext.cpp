@@ -48,6 +48,7 @@ VulkanRendererContext::~VulkanRendererContext() {
         compositePass = VK_NULL_HANDLE;
     }
     destroyXrTargetResources();
+    kiDestroy();
     cleanupSwapchain(); cleanupCursorTex();
     
     vk_.DestroySampler(device, sampler, nullptr);
@@ -827,7 +828,7 @@ void VulkanRendererContext::recordCmdBuf(VkCommandBuffer cb, VkFramebuffer targe
     }
 
     if (!ahbTransitions.empty())
-        vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0, 0, nullptr, 0, nullptr, (uint32_t)ahbTransitions.size(), ahbTransitions.data());
     if (!preUpload.empty())
         vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -860,11 +861,26 @@ void VulkanRendererContext::recordCmdBuf(VkCommandBuffer cb, VkFramebuffer targe
     }
 
     if (!postUpload.empty())
-        vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        vk_.CmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0, 0, nullptr, 0, nullptr, (uint32_t)postUpload.size(), postUpload.data());
 
     bool toXr = xrTargetActive.load() && xrFb!=VK_NULL_HANDLE;
     VkExtent2D tgtExt = toXr ? xrExt : swapchainExt;
+
+    // KI upscaler: run the network on the game window (the largest one) before compositing.
+    const DrawEntry* kiDraw = nullptr;
+    if (activeEffectId == EFFECT_ID_KI && !toXr && targetRp == renderPass) {
+        for (auto& d : draws) {
+            if (d.ds == VK_NULL_HANDLE || d.view == VK_NULL_HANDLE) continue;
+            if (!kiDraw || (int64_t)d.w * d.h > (int64_t)kiDraw->w * kiDraw->h) kiDraw = &d;
+        }
+        if (kiDraw) {
+            float outW = (float)kiDraw->w * sx / cw * (float)tgtExt.width;
+            float outH = (float)kiDraw->h * sy / ch * (float)tgtExt.height;
+            bool upscaling = outW > kiDraw->w * 1.3f || outH > kiDraw->h * 1.3f;
+            if (!upscaling || !kiRecord(cb, kiDraw->view, kiDraw->w, kiDraw->h, currentFrame)) kiDraw = nullptr;
+        }
+    }
     VkRenderPassBeginInfo rpi{}; rpi.sType=VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     rpi.renderPass = toXr ? xrRp : targetRp;
     rpi.framebuffer = toXr ? xrFb : targetFb;
@@ -900,6 +916,15 @@ void VulkanRendererContext::recordCmdBuf(VkCommandBuffer cb, VkFramebuffer targe
         pc.gamma = activeGamma;
         pc.outW = std::max(1.0f, (float)d.w * sx / cw * (float)tgtExt.width);
         pc.outH = std::max(1.0f, (float)d.h * sy / ch * (float)tgtExt.height);
+        if (&d == kiDraw) {
+            VkDescriptorSet sets[2] = {d.ds, kiOutSets[currentFrame]};
+            vk_.CmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, kiOutPipeline);
+            vk_.CmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, kiOutPipeLayout, 0, 2, sets, 0, nullptr);
+            vk_.CmdPushConstants(cb, kiOutPipeLayout, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
+            vk_.CmdDraw(cb, 4, 1, 0, 0);
+            vk_.CmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            continue;
+        }
         vk_.CmdPushConstants(cb, pipeLayout, VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
         vk_.CmdDraw(cb, 4, 1, 0, 0);
     }
@@ -1295,6 +1320,7 @@ ok=true;}catch(...){}
             if (wt.ds==VK_NULL_HANDLE) continue;
             DrawEntry de{wt.img,wt.ds,VK_NULL_HANDLE,re.x,re.y,wt.w,wt.h};
             de.isAHB=wt.isAHB;
+            de.view=wt.view;
             if (wt.needsTransition) { de.needsTransition=true; wt.needsTransition=false; }
             if (wt.dirty && !wt.isAHB && wt.stg!=VK_NULL_HANDLE) {
                 de.upload=wt.stg;

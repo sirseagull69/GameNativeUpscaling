@@ -1,0 +1,27 @@
+#version 450
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(push_constant) uniform PC { ivec2 inputSize; } pc;
+layout(binding = 3, rgba16f) uniform writeonly image2D outImg;
+ivec2 kiCoord(vec2 off) {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy) + ivec2(off);
+    return clamp(p, ivec2(0), pc.inputSize - 1);
+}
+layout(binding = 0) uniform sampler2D MODEL1;
+vec4 MODEL1_texOff(vec2 off) { return texelFetch(MODEL1, kiCoord(off), 0); }
+layout(binding = 1) uniform sampler2D MODEL2;
+vec4 MODEL2_texOff(vec2 off) { return texelFetch(MODEL2, kiCoord(off), 0); }
+layout(binding = 2) uniform sampler2D FEATURE2;
+vec4 FEATURE2_texOff(vec2 off) { return texelFetch(FEATURE2, kiCoord(off), 0); }
+vec4 hookPass()
+{
+vec4 res = vec4(-0.0425243787467480,-0.3715015351772308,-0.0256227850914001,-0.2774516046047211);
+res += mat4(0.0238118842244148,0.0295480657368898,-0.0066418983042240,0.1021223962306976,-0.0568209178745747,-0.4355100393295288,-0.2700522541999817,-0.2060186564922333,-0.0689613372087479,-0.1689691990613937,-0.0306748505681753,-0.2461252212524414,-0.0057375836186111,-0.1892303228378296,-0.0285871494561434,-0.5032613277435303) * MODEL1_texOff(vec2(0.0));
+res += mat4(0.5463213324546814,0.0972800329327583,0.0307560767978430,0.0678058937191963,-0.0356063023209572,-0.7013865113258362,0.1890443563461304,-0.1036657467484474,-0.1745826154947281,-0.2942218780517578,-0.0485423319041729,-0.2983124554157257,-0.0524431839585304,-0.3261034786701202,0.3217246532440186,0.1958018541336060) * MODEL2_texOff(vec2(0.0));
+res += FEATURE2_texOff(vec2(0.0));
+res = max(res, vec4(0.0)) + vec4(0.1391339898109436,0.0960328355431557,0.6235341429710388,0.1177272796630859) * min(res, vec4(0.0));
+return res;
+}
+void main() {
+    if (any(greaterThanEqual(ivec2(gl_GlobalInvocationID.xy), pc.inputSize))) return;
+    imageStore(outImg, ivec2(gl_GlobalInvocationID.xy), hookPass());
+}

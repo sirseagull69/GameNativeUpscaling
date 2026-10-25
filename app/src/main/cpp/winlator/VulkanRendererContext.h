@@ -112,6 +112,7 @@ struct VkTable {
 #include <condition_variable>
 
 static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
+static constexpr int EFFECT_ID_KI = 6;  // VulkanRenderer.EFFECT_KI
 
 #include "../lsfg/vkr_lsfg.h"
 
@@ -233,6 +234,7 @@ private:
         int             x=0, y=0, w=0, h=0;
         bool            needsTransition = false;
         bool            isAHB          = false;
+        VkImageView     view           = VK_NULL_HANDLE;  // for the KI upscaler's compute input
     };
 
     ANativeWindow* window;
@@ -465,4 +467,25 @@ private:
                                VkAccessFlags srcA, VkAccessFlags dstA,
                                VkPipelineStageFlags srcS, VkPipelineStageFlags dstS);
     VkShaderModule  makeShader(const uint32_t* code, size_t sz);
+
+    // ---- KI upscaler (VulkanRendererKi.cpp) ----
+    struct KiImage { VkImage img = VK_NULL_HANDLE; VkDeviceMemory mem = VK_NULL_HANDLE; VkImageView view = VK_NULL_HANDLE; };
+    bool kiReady = false, kiFailed = false, kiImagesNeedInit = false;
+    int kiW = 0, kiH = 0;
+    std::vector<KiImage> kiImages;
+    VkDescriptorSetLayout kiDsLayout = VK_NULL_HANDLE, kiOutDsLayout = VK_NULL_HANDLE;
+    VkPipelineLayout kiPipeLayout = VK_NULL_HANDLE, kiOutPipeLayout = VK_NULL_HANDLE;
+    std::vector<VkPipeline> kiPipelines;
+    VkPipeline kiOutPipeline = VK_NULL_HANDLE;
+    VkDescriptorPool kiPool = VK_NULL_HANDLE;
+    std::vector<VkDescriptorSet> kiSets;
+    VkDescriptorSet kiOutSets[MAX_FRAMES_IN_FLIGHT] = {};
+    VkSampler kiNearest = VK_NULL_HANDLE;
+    PFN_vkCreateComputePipelines kiCreateComputePipelines = nullptr;
+    PFN_vkCmdDispatch kiCmdDispatch = nullptr;
+    bool kiInit();
+    bool kiEnsureImages(int w, int h);
+    void kiDestroyImages();
+    bool kiRecord(VkCommandBuffer cb, VkImageView src, int w, int h, uint32_t frame);
+    void kiDestroy();
 };

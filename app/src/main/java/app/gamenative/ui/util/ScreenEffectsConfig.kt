@@ -186,15 +186,17 @@ fun applyScreenEffectsConfig(renderer: VulkanRenderer, config: ScreenEffectsConf
 
     val effectId = when {
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR ||
-            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT ||
-            // The KI upscaler only exists in the GL renderer; give Vulkan sessions FSR instead.
-            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_KI -> VulkanRenderer.EFFECT_FSR
+            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT -> VulkanRenderer.EFFECT_FSR
+        config.scalingMode == ScreenEffectsConfig.SCALING_MODE_KI -> VulkanRenderer.EFFECT_KI
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_DLS -> VulkanRenderer.EFFECT_DLS
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_NATURAL -> VulkanRenderer.EFFECT_NATURAL
         else -> VulkanRenderer.EFFECT_NONE
     }
     val sharpnessRange = ScreenEffectsConfig.FSR_MAX_LEVEL - ScreenEffectsConfig.FSR_MIN_LEVEL
-    val sharpness = if (sharpnessRange > 0) {
+    val sharpness = if (config.scalingMode == ScreenEffectsConfig.SCALING_MODE_KI) {
+        // The native KI pass reads detail strength as sharpness * 1.5 (sharpness is clamped to 0..1).
+        kiLevelToDetailStrength(config.fsrSharpnessLevel) / 1.5f
+    } else if (sharpnessRange > 0) {
         (config.fsrSharpnessLevel.coerceIn(ScreenEffectsConfig.FSR_MIN_LEVEL, ScreenEffectsConfig.FSR_MAX_LEVEL) -
             ScreenEffectsConfig.FSR_MIN_LEVEL).toFloat() / sharpnessRange.toFloat()
     } else {

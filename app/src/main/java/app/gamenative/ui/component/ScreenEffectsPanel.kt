@@ -99,6 +99,7 @@ private val VULKAN_SUPPORTED_SCALING_MODES = listOf(
     ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT,
     ScreenEffectsConfig.SCALING_MODE_DLS,
     ScreenEffectsConfig.SCALING_MODE_NATURAL,
+    ScreenEffectsConfig.SCALING_MODE_KI,
 )
 
 private fun scalingModeLabelRes(mode: Int): Int = when (mode) {
@@ -133,6 +134,7 @@ private val VULKAN_UPSCALING_MODES = listOf(
     ScreenEffectsConfig.SCALING_MODE_FSR,
     ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT,
     ScreenEffectsConfig.SCALING_MODE_DLS,
+    ScreenEffectsConfig.SCALING_MODE_KI,
 )
 // "None" is rendered as a standalone first row, so it is omitted from these lists.
 private val VULKAN_BASIC_MODES = listOf(
@@ -579,10 +581,17 @@ fun ScreenEffectsTabContent(
 
         if (scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR ||
             scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT ||
-            scalingMode == ScreenEffectsConfig.SCALING_MODE_DLS
+            scalingMode == ScreenEffectsConfig.SCALING_MODE_DLS ||
+            scalingMode == ScreenEffectsConfig.SCALING_MODE_KI
         ) {
             ScreenEffectAdjustmentRow(
-                title = stringResource(R.string.screen_effects_fsr_sharpness),
+                title = stringResource(
+                    if (scalingMode == ScreenEffectsConfig.SCALING_MODE_KI) {
+                        R.string.screen_effects_ki_strength
+                    } else {
+                        R.string.screen_effects_fsr_sharpness
+                    },
+                ),
                 valueText = stringResource(R.string.screen_effects_fsr_sharpness_value, fsrSharpnessLevel),
                 progress = normalizedProgress(
                     fsrSharpnessLevel.toFloat(),
