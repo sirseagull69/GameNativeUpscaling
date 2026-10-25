@@ -34,6 +34,9 @@ android {
         create("release-gold") {
             initWith(getByName("release"))
         }
+        create("ki") {
+            initWith(getByName("debug"))
+        }
     }
 
     compileOptions {

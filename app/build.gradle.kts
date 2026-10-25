@@ -45,6 +45,14 @@ android {
     ndkVersion = "27.3.13750724"
 
     signingConfigs {
+        // Fixed test key for the "ki" upscaler test builds, so each new CI build installs
+        // over the previous one. Not a release key.
+        create("kiTest") {
+            storeFile = rootProject.file("ki/ki-test.keystore")
+            storePassword = "gamenativeki"
+            keyAlias = "ki"
+            keyPassword = "gamenativeki"
+        }
         create("pluvia") {
             if (keystoreProperties != null) {
                 storeFile = file(keystoreProperties["storeFile"].toString())
@@ -174,6 +182,15 @@ android {
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
         }
+        // Test build for the AI upscaler: installs next to the normal GameNative.
+        create("ki") {
+            initWith(getByName("debug"))
+            isDebuggable = false
+            applicationIdSuffix = ".ki"
+            versionNameSuffix = "-ki"
+            signingConfig = signingConfigs.getByName("kiTest")
+            matchingFallbacks += listOf("debug")
+        }
         create("release-signed") {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -242,6 +259,8 @@ android {
         // default locale. These extra translations are harmless and pre-existing; without this
         // the release-only lintVital pass fails on 150+ ExtraTranslation errors.
         disable += "ExtraTranslation"
+        // Fork: skip the release-only lintVital pass so the "ki" test build stays fast.
+        checkReleaseBuilds = false
     }
     dynamicFeatures += setOf(":ubuntufs")
 

@@ -1,0 +1,82 @@
+name: KI Upscaler Testbuild
+
+# Builds the "ki" test variant (app.gamenative.ki) and publishes the APK as the
+# "ki-latest" pre-release, so it can be downloaded straight onto the handheld.
+
+on:
+  push:
+    branches: [ "master" ]
+    paths-ignore:
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ki-build
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add swap
+        run: |
+          sudo fallocate -l 8G /mnt/swapfile.ci
+          sudo chmod 600 /mnt/swapfile.ci
+          sudo mkswap /mnt/swapfile.ci
+          sudo swapon /mnt/swapfile.ci
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Dummy credentials
+        run: |
+          cat <<EOF > local.properties
+          POSTHOG_API_KEY=dummy
+          POSTHOG_HOST=https://us.i.posthog.com
+          EOF
+
+      - name: Build bundle (modern, ki)
+        run: ./gradlew -Pkotlin.daemon.jvmargs=-Xmx3g :app:bundleModernKi
+
+      - name: Stop Gradle daemon
+        run: ./gradlew --stop
+
+      - name: Universal APK
+        run: |
+          AAB=$(ls app/build/outputs/bundle/modernKi/*.aab | head -1)
+          java -jar tools/bundletool-all-1.17.2.jar build-apks \
+            --bundle="$AAB" --output=ki.apks --mode=universal \
+            --ks=ki/ki-test.keystore --ks-key-alias=ki \
+            --ks-pass=pass:gamenativeki --key-pass=pass:gamenativeki
+          unzip -p ki.apks universal.apk > GameNative-KI.apk
+          ls -la GameNative-KI.apk
+
+      - name: Publish as ki-latest pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHORT=$(git rev-parse --short HEAD)
+          gh release delete ki-latest --yes --cleanup-tag || true
+          gh release create ki-latest GameNative-KI.apk \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "GameNative KI (Testbuild $SHORT)" \
+            --notes "Automatischer Testbuild vom KI-Upscaler. Installiert sich neben dem normalen GameNative."
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameNative-KI
+          path: GameNative-KI.apk

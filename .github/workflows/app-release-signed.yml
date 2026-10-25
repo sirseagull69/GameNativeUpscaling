@@ -17,7 +17,8 @@ concurrency:
 
 jobs:
   build:
-
+    # Fork: needs upstream signing secrets, so only run in the upstream repo.
+    if: github.repository == 'utkarshdalal/GameNative'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
