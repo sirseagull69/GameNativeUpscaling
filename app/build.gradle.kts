@@ -65,6 +65,11 @@ android {
 
     defaultConfig {
         applicationId = "app.gamenative"
+        externalNativeBuild {
+            cmake {
+                targets += listOf("vulkan_renderer")
+            }
+        }
 
         minSdk = 26
 
@@ -426,6 +431,15 @@ android {
     //         version = "3.22.1"
     //     }
     // }
+
+    // Fork (KI upscaler): build only libvulkan_renderer.so from source (it contains the
+    // KI compute passes); every other native lib stays the shipped prebuilt.
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 
     // (For now) Uncomment for LeakCanary to work.
     // configurations {

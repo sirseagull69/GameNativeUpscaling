@@ -24,6 +24,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Shader compiler for the native Vulkan renderer
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq glslang-tools && glslangValidator --version | head -1
 
       - name: Add swap
         run: |
@@ -73,6 +78,12 @@ jobs:
 
       - name: Stop Gradle daemon
         run: ./gradlew --stop
+
+      - name: Check KI code is in the native renderer
+        run: |
+          SO=$(find app/build -path '*modernKi*' -name libvulkan_renderer.so | head -1)
+          echo "$SO"
+          strings -a "$SO" | grep -q 'KI: initialised' || { echo "::error title=gradle::libvulkan_renderer.so has no KI code ($SO)"; exit 1; }
 
       - name: Universal APK
         run: |
