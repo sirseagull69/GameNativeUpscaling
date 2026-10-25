@@ -33,8 +33,9 @@ void main() { fragTexCoord = position; gl_Position = vec4(2.0 * position - 1.0, 
 
 
 def to_es_compute(src):
-    src = src.replace("#version 450", "#version 310 es\nprecision highp float;\nprecision highp int;\n"
-                      "precision highp image2D;\nprecision highp sampler2D;")
+    if "#version 450" in src:
+        src = src.replace("#version 450", "#version 310 es\nprecision highp float;\nprecision highp int;\n"
+                          "precision highp image2D;\nprecision highp sampler2D;")
     src = src.replace("layout(push_constant) uniform PC { ivec2 inputSize; } pc;", "uniform ivec2 kiInputSize;")
     return src.replace("pc.inputSize", "kiInputSize")
 

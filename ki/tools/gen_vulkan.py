@@ -20,10 +20,16 @@ import convert_mpv_shader as conv  # noqa: E402
 
 MAX_BINDS = 3
 
-COMPUTE_TEMPLATE = """#version 450
+# GLSL ES so that mediump becomes SPIR-V RelaxedPrecision: Adreno then runs the network
+# math in fp16 (about twice the ALU throughput). Measured quality loss: none (37.27 dB both).
+COMPUTE_TEMPLATE = """#version 310 es
+precision mediump float;
+precision highp int;
+precision mediump sampler2D;
+precision mediump image2D;
 layout(local_size_x = 8, local_size_y = 8) in;
 layout(push_constant) uniform PC { ivec2 inputSize; } pc;
-layout(binding = 3, rgba16f) uniform writeonly image2D outImg;
+layout(binding = 3, rgba16f) uniform writeonly mediump image2D outImg;
 ivec2 kiCoord(vec2 off) {
     ivec2 p = ivec2(gl_GlobalInvocationID.xy) + ivec2(off);
     return clamp(p, ivec2(0), pc.inputSize - 1);
