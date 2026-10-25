@@ -49,7 +49,27 @@ jobs:
           EOF
 
       - name: Build bundle (modern, ki)
-        run: ./gradlew -Pkotlin.daemon.jvmargs=-Xmx3g :app:bundleModernKi
+        run: |
+          set -o pipefail
+          if ! ./gradlew -Pkotlin.daemon.jvmargs=-Xmx3g :app:bundleModernKi 2>&1 | tee gradle.log; then
+            # Surface the Gradle error as annotations (readable via the API without raw logs).
+            python3 - <<'PY'
+          import re
+          log = open("gradle.log", encoding="utf-8", errors="replace").read()
+          parts = []
+          m = re.search(r"\* What went wrong:(.*?)(\* Try:|\Z)", log, re.S)
+          if m:
+              parts.append("WHAT WENT WRONG:" + m.group(1).strip()[:3000])
+          errs = [l for l in log.splitlines() if re.match(r"^(e: |.*error:|ERROR:)", l)]
+          if errs:
+              parts.append("ERRORS:\n" + "\n".join(errs[:40])[:3000])
+          if not parts:
+              parts.append("\n".join(log.splitlines()[-60:])[-3000:])
+          for p in parts:
+              print("::error title=gradle::" + p.replace("%", "%25").replace("\r", "").replace("\n", "%0A"))
+          PY
+            exit 1
+          fi
 
       - name: Stop Gradle daemon
         run: ./gradlew --stop

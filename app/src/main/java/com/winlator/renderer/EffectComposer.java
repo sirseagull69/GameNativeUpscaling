@@ -3,6 +3,7 @@ package com.winlator.renderer;
 import android.opengl.GLES20;
 
 import com.winlator.renderer.effects.Effect;
+import com.winlator.renderer.effects.PrePassEffect;
 import com.winlator.renderer.effects.RenderScaleEffect;
 import com.winlator.renderer.effects.SourceTextureFilterEffect;
 import com.winlator.renderer.material.ShaderMaterial;
@@ -109,11 +110,15 @@ public class EffectComposer {
             int targetWidth = renderToScreen ? outputWidth : target.getWidth();
             int targetHeight = renderToScreen ? outputHeight : target.getHeight();
 
+            Effect effect = snapshot.get(i);
+            if (effect instanceof PrePassEffect) {
+                ((PrePassEffect) effect).runPrePasses(renderer, source.getTextureId(), sourceWidth, sourceHeight, targetWidth, targetHeight);
+            }
+
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, targetFramebuffer);
             GLES20.glViewport(0, 0, targetWidth, targetHeight);
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
 
-            Effect effect = snapshot.get(i);
             effect.use(renderer);
             ShaderMaterial material = effect.getMaterial();
 

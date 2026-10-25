@@ -13,6 +13,7 @@ import com.winlator.renderer.effects.NTSCCombinedEffect
 import com.winlator.renderer.effects.ScalingModeEffect
 import com.winlator.renderer.effects.ToonEffect
 import com.winlator.renderer.effects.VividEffect
+import com.winlator.renderer.effects.ki.KiUpscaleEffect
 import kotlin.math.abs
 
 data class ScreenEffectsConfig(
@@ -37,6 +38,8 @@ data class ScreenEffectsConfig(
         const val SCALING_MODE_FSR_ASPECT = 6
         const val SCALING_MODE_DLS = 7
         const val SCALING_MODE_NATURAL = 8
+        /** Neural-network upscaler (GL renderer only; falls back to FSR on Vulkan). */
+        const val SCALING_MODE_KI = 9
         const val FSR_MIN_LEVEL = 1
         const val FSR_MAX_LEVEL = 5
         const val FSR_DEFAULT_LEVEL = 3
@@ -101,6 +104,18 @@ fun fsrQuickMenuLevelToStops(level: Int): Float {
     }
 }
 
+/** Detail strength of the KI upscaler for the shared 1..5 sharpness level (3 = network as trained). */
+fun kiLevelToDetailStrength(level: Int): Float {
+    val clamped = level.coerceIn(ScreenEffectsConfig.FSR_MIN_LEVEL, ScreenEffectsConfig.FSR_MAX_LEVEL)
+    return when (clamped) {
+        1 -> 0.35f
+        2 -> 0.65f
+        3 -> 1.0f
+        4 -> 1.25f
+        else -> 1.5f
+    }
+}
+
 fun applyScreenEffectsConfig(renderer: GLRenderer, config: ScreenEffectsConfig) {
     val composer = renderer.effectComposer
     val effects = mutableListOf<Effect>()
@@ -114,6 +129,12 @@ fun applyScreenEffectsConfig(renderer: GLRenderer, config: ScreenEffectsConfig) 
             val rcasEffect = composer.getEffect(FSR1RcasEffect::class.java) ?: FSR1RcasEffect()
             rcasEffect.sharpnessStops = fsrQuickMenuLevelToStops(config.fsrSharpnessLevel)
             effects += rcasEffect
+        }
+        ScreenEffectsConfig.SCALING_MODE_KI -> {
+            val kiEffect = composer.getEffect(KiUpscaleEffect::class.java) ?: KiUpscaleEffect()
+            kiEffect.setPreserveAspect(true)
+            kiEffect.setDetailStrength(kiLevelToDetailStrength(config.fsrSharpnessLevel))
+            effects += kiEffect
         }
         ScreenEffectsConfig.SCALING_MODE_NONE -> Unit
         else -> {
@@ -165,7 +186,9 @@ fun applyScreenEffectsConfig(renderer: VulkanRenderer, config: ScreenEffectsConf
 
     val effectId = when {
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR ||
-            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT -> VulkanRenderer.EFFECT_FSR
+            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT ||
+            // The KI upscaler only exists in the GL renderer; give Vulkan sessions FSR instead.
+            config.scalingMode == ScreenEffectsConfig.SCALING_MODE_KI -> VulkanRenderer.EFFECT_FSR
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_DLS -> VulkanRenderer.EFFECT_DLS
         config.scalingMode == ScreenEffectsConfig.SCALING_MODE_NATURAL -> VulkanRenderer.EFFECT_NATURAL
         else -> VulkanRenderer.EFFECT_NONE

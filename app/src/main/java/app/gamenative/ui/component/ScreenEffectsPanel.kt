@@ -110,6 +110,7 @@ private fun scalingModeLabelRes(mode: Int): Int = when (mode) {
     ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT -> R.string.screen_effects_scaling_mode_fsr_aspect
     ScreenEffectsConfig.SCALING_MODE_DLS -> R.string.screen_effects_scaling_mode_dls
     ScreenEffectsConfig.SCALING_MODE_NATURAL -> R.string.screen_effects_scaling_mode_natural
+    ScreenEffectsConfig.SCALING_MODE_KI -> R.string.screen_effects_scaling_mode_ki
     else -> R.string.screen_effects_scaling_mode_none
 }
 
@@ -122,6 +123,7 @@ private fun scalingModeDescRes(mode: Int): Int = when (mode) {
     ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT -> R.string.screen_effects_scaling_mode_fsr_aspect_desc
     ScreenEffectsConfig.SCALING_MODE_DLS -> R.string.screen_effects_scaling_mode_dls_desc
     ScreenEffectsConfig.SCALING_MODE_NATURAL -> R.string.screen_effects_scaling_mode_natural_desc
+    ScreenEffectsConfig.SCALING_MODE_KI -> R.string.screen_effects_scaling_mode_ki_desc
     else -> R.string.screen_effects_scaling_mode_none_desc
 }
 
@@ -146,6 +148,7 @@ private val VULKAN_BASIC_MODES = listOf(
 private val GL_UPSCALING_MODES = listOf(
     ScreenEffectsConfig.SCALING_MODE_FSR,
     ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT,
+    ScreenEffectsConfig.SCALING_MODE_KI,
 )
 private val GL_BASIC_MODES = listOf(
     ScreenEffectsConfig.SCALING_MODE_NEAREST,
@@ -330,10 +333,17 @@ fun GLScreenEffectsTabContent(
         }
 
         if (scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR ||
-            scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT
+            scalingMode == ScreenEffectsConfig.SCALING_MODE_FSR_ASPECT ||
+            scalingMode == ScreenEffectsConfig.SCALING_MODE_KI
         ) {
             ScreenEffectAdjustmentRow(
-                title = stringResource(R.string.screen_effects_fsr_sharpness),
+                title = stringResource(
+                    if (scalingMode == ScreenEffectsConfig.SCALING_MODE_KI) {
+                        R.string.screen_effects_ki_strength
+                    } else {
+                        R.string.screen_effects_fsr_sharpness
+                    },
+                ),
                 valueText = stringResource(R.string.screen_effects_fsr_sharpness_value, fsrSharpnessLevel),
                 progress = normalizedProgress(
                     fsrSharpnessLevel.toFloat(),

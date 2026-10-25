@@ -1884,6 +1884,9 @@
     <string name="screen_effects_scaling_mode_fsr_desc">Scharfe Super-Resolution-Hochskalierung.</string>
     <string name="screen_effects_scaling_mode_fsr_aspect">FSR Fit</string>
     <string name="screen_effects_scaling_mode_fsr_aspect_desc">FSR, behält Seitenverhältnis bei.</string>
+    <string name="screen_effects_scaling_mode_ki">KI (FSRCNNX)</string>
+    <string name="screen_effects_scaling_mode_ki_desc">Hochskalierung per neuronalem Netz. Experimentell, braucht den GL-Renderer.</string>
+    <string name="screen_effects_ki_strength">KI-Detailstärke</string>
     <string name="screen_effects_scaling_mode_dls">DLS</string>
     <string name="screen_effects_scaling_mode_dls_desc">Schärfen / Klarheit.</string>
     <string name="screen_effects_scaling_mode_natural">Natürlich</string>
